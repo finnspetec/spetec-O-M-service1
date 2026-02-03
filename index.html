@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日益智慧能源 - 2025年度維運服務滿意度調查</title>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX Compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            -webkit-font-smoothing: antialiased;
+            scroll-behavior: smooth;
+        }
+        .bg-solar-gradient {
+            background: linear-gradient(to bottom, rgba(14, 165, 233, 0.6), rgba(248, 250, 252, 1)), 
+                        url('https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        @keyframes progress-fill {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .animate-progress-bar {
+            animation: progress-fill 4s linear forwards;
+        }
+        /* 優化手機按鈕點擊後的藍色框框 */
+        button { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // 全域配置：確保在渲染前就存在
+        const SCORE_OPTIONS = ["1.非常不滿意", "2.不滿意", "3.尚可", "4.滿意", "5.非常滿意"];
+        const GOOGLE_FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLScWKCVehF5x0dh4jXpC6pitzsvmOJSzUrGvWHh3hfuW332JNQ/formResponse";
+
+        // 圖示組件
+        const IconFactory = () => (
+            <svg className="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+        );
+        const IconUser = () => (
+            <svg className="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        );
+
+        const App = () => {
+            const [formData, setFormData] = useState({
+                'entry.899999615': '', // 案場名稱
+                'entry.464377799': [], // 填寫人
+                'entry.1414352831': '', 
+                'entry.726589747': [], 
+                'entry.418035188': '', 
+                'entry.842552003': [], 
+                'entry.2061844101': '', 
+                'entry.67805626': [], 
+                'entry.1003343879': '', 
+                'entry.1664860146': '', 
+                'entry.1578497332': '', 
+                'entry.553624540': '', 
+                'entry.1437601907': '', 
+                'entry.1343935114': '', 
+                'entry.2141434383': '', 
+                'entry.2082616046': '', 
+                'entry.951165679': [], 
+                'entry.1748333818': '', 
+                'entry.1579464985': '', 
+                'entry.1045920345': ''
+            });
+
+            const [status, setStatus] = useState('idle'); // idle, submitting, submitted
+
+            const handleCheckboxToggle = (name, value) => {
+                setFormData(prev => {
+                    const current = prev[name];
+                    const newValue = current.includes(value) 
+                        ? current.filter(item => item !== value)
+                        : [...current, value];
+                    return { ...prev, [name]: newValue };
+                });
+            };
+
+            const onFormSubmit = () => {
+                setStatus('submitting');
+                // 延時 4 秒，確保瀏覽器有足夠時間在背景透過 iframe 完成 POST
+                setTimeout(() => {
+                    setStatus('submitted');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 4000);
+            };
+
+            const renderRadioGroup = (name, label, options) => (
+                <div className="mb-6 p-6 bg-white/95 rounded-2xl shadow-sm border border-sky-100 hover:shadow-md transition-all">
+                    <label className="block text-slate-800 font-black mb-5 text-lg">
+                        {label} <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                        {options.map((opt) => (
+                            <button
+                                key={opt} type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, [name]: opt }))}
+                                className={`px-2 py-3 rounded-xl border-2 text-center transition-all text-sm font-bold ${
+                                    formData[name] === opt 
+                                        ? 'border-sky-500 bg-sky-500 text-white shadow-lg' 
+                                        : 'border-slate-100 bg-white text-slate-500 hover:border-sky-200 hover:bg-sky-50'
+                                }`}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
+                    {/* 隱藏欄位供原生 Form 讀取，這是資料回傳的關鍵 */}
+                    <input type="hidden" name={name} value={formData[name]} required />
+                </div>
+            );
+
+            const renderCheckboxGroup = (name, label, options) => (
+                <div className="mb-6 p-6 bg-white/95 rounded-2xl shadow-sm border border-sky-100 hover:shadow-md transition-all">
+                    <label className="block text-slate-800 font-black mb-5 text-lg">{label}</label>
+                    <div className="flex flex-wrap gap-2">
+                        {options.map((opt) => (
+                            <button
+                                key={opt} type="button"
+                                onClick={() => handleCheckboxToggle(name, opt)}
+                                className={`px-5 py-2.5 rounded-full border-2 transition-all text-sm font-bold ${
+                                    formData[name].includes(opt)
+                                        ? 'border-amber-500 bg-amber-500 text-white shadow-md'
+                                        : 'border-slate-100 bg-white text-slate-500 hover:border-amber-200'
+                                }`}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
+                    {/* 重要：Google 表單複選必須發送多個同名的 input 欄位 */}
+                    {formData[name].map((val, i) => <input key={`${name}-${i}`} type="hidden" name={name} value={val} />)}
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-slate-50">
+                    {/* 成功頁面 */}
+                    {status === 'submitted' && (
+                        <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center p-6">
+                            <div className="text-center max-w-md w-full">
+                                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
+                                    <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="4"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <h2 className="text-3xl font-black text-slate-800 mb-4 tracking-tighter">問卷提交成功</h2>
+                                <p className="text-slate-500 text-lg mb-10 leading-relaxed">您的回饋已安全傳送至日益智慧能源後台。<br/>感謝您的參與。</p>
+                                <button onClick={() => window.location.reload()} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-sky-100 hover:bg-sky-800 transition-colors">重新填寫</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 表單內容 */}
+                    <div className={status === 'submitted' ? 'hidden' : ''}>
+                        <header className="relative h-[350px] flex items-center justify-center bg-solar-gradient shadow-inner">
+                            <div className="absolute inset-0 bg-black/5"></div>
+                            <div className="relative z-10 text-center px-4">
+                                <h1 className="text-white text-5xl md:text-7xl font-black mb-4 drop-shadow-2xl tracking-[0.1em]">日益智慧能源</h1>
+                                <div className="inline-block bg-white/20 backdrop-blur-md px-8 py-2 rounded-full border border-white/30 text-white font-black text-lg md:text-xl shadow-lg">
+                                    2025 年度維運服務滿意度調查
+                                </div>
+                            </div>
+                        </header>
+
+                        <main className="max-w-4xl mx-auto -mt-10 relative z-10 px-4 md:px-6">
+                            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl mb-10 border-b-8 border-sky-500">
+                                <p className="text-slate-600 text-lg md:text-xl font-medium leading-relaxed text-center">
+                                    本問卷旨在了解貴公司對案場維運服務的真實感受。<br className="hidden md:block" />
+                                    您的寶貴回饋將作為我們優化品質之重要依據。
+                                </p>
+                            </div>
+
+                            {/* 關鍵：透過 hidden iframe 提交避免導向 Google */}
+                            <iframe name="google_frame" id="google_frame" style={{display: 'none'}}></iframe>
+
+                            <form 
+                                action={GOOGLE_FORM_URL} 
+                                method="POST" 
+                                target="google_frame" 
+                                onSubmit={onFormSubmit}
+                                className={status === 'submitting' ? 'opacity-40 pointer-events-none' : ''}
+                            >
+                                {/* 必要的校驗欄位 */}
+                                <input type="hidden" name="fbzx" value="764606553543506960" />
+                                <input type="hidden" name="pageHistory" value="0" />
+                                <input type="hidden" name="fvv" value="1" />
+
+                                {/* 基礎資訊 */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                                    <div className="p-6 bg-white rounded-3xl shadow-sm border border-sky-50 transition-all hover:shadow-md">
+                                        <div className="flex items-center gap-3 mb-4"><IconFactory /><label className="font-black text-slate-700 text-lg">案場名稱 *</label></div>
+                                        <input required type="text" name="entry.899999615" placeholder="填寫完整案場名稱" className="w-full p-4 rounded-xl bg-slate-50 border-2 border-transparent focus:border-sky-500 focus:bg-white outline-none font-bold transition-all text-slate-800" />
+                                    </div>
+                                    <div className="p-6 bg-white rounded-3xl shadow-sm border border-sky-50 transition-all hover:shadow-md">
+                                        <div className="flex items-center gap-3 mb-4"><IconUser /><label className="font-black text-slate-700 text-lg">填寫人身份 *</label></div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {["公司負責人", "維運承辦人", "專案負責人"].map(role => (
+                                                <button key={role} type="button" onClick={() => handleCheckboxToggle('entry.464377799', role)}
+                                                    className={`px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all ${formData['entry.464377799'].includes(role) ? 'bg-sky-500 border-sky-500 text-white shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}>
+                                                    {role}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {formData['entry.464377799'].map((val, i) => <input key={`role-${i}`} type="hidden" name="entry.464377799" value={val} />)}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-2xl font-black text-slate-800 pt-8 pb-4 flex items-center gap-3">
+                                        <span className="w-2 h-8 bg-sky-500 rounded-full"></span> 服務整體評鑑
+                                    </h3>
+                                    
+                                    {renderRadioGroup('entry.1414352831', '1. 整體而言，您對本案場目前的維運服務滿意程度為何？', SCORE_OPTIONS)}
+                                    {(formData['entry.1414352831'] && !formData['entry.1414352831'].includes('4') && !formData['entry.1414352831'].includes('5')) && 
+                                        renderCheckboxGroup('entry.726589747', '1-1. 請簡要說明不符合期待的主要原因：', ["回應速度偏慢", "問題處理不夠即時", "技術說明或溝通不夠清楚", "巡檢或保養品質待加強", "故障排除效率不足", "與內部需求配合度不足"])}
+
+                                    {renderRadioGroup('entry.418035188', '2. 較您的期待，本公司的維運服務表現符合程度為何？', SCORE_OPTIONS)}
+                                    {(formData['entry.418035188'] && !formData['entry.418035188'].includes('4') && !formData['entry.418035188'].includes('5')) && 
+                                        renderCheckboxGroup('entry.842552003', '2-1. 您認為與原先期待落差較大的部分為何：', ["回應速度", "技術專業度", "服務內容深度", "溝通與說明方式", "整體資源投入"])}
+
+                                    {renderRadioGroup('entry.2061844101', '3. 若以同類型服務比較，您認為本公司的維運品質競爭力為何？', ["1.非常沒有競爭力", "2.沒有競爭力", "3.尚可", "4.有競爭力", "5.非常有競爭力"])}
+                                    {(formData['entry.2061844101'] && !formData['entry.2061844101'].includes('4') && !formData['entry.2061844101'].includes('5')) && 
+                                        renderCheckboxGroup('entry.67805626', '3-1. 您認為本公司較需要加強的面向：', ["價值感受與費用對應", "回應效率", "技術能力", "主動性與改善建議", "溝通協調"])}
+
+                                    <h3 className="text-2xl font-black text-slate-800 pt-12 pb-4 flex items-center gap-3">
+                                        <span className="w-2 h-8 bg-amber-500 rounded-full"></span> 維運品質細項
+                                    </h3>
+                                    {renderRadioGroup('entry.1003343879', '4. 定期巡檢與保養執行的確實程度', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.1664860146', '5. 問題發現與回報的即時性', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.1578497332', '6. 異常事件的回應速度', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.553624540', '7. 故障排除的專業度與完整性', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.1437601907', '8. 發電監控與異常通知的清楚程度', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.1343935114', '9. 維運相關報告或說明的理解性', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.2141434383', '10. 維運窗口的溝通順暢度', SCORE_OPTIONS)}
+                                    {renderRadioGroup('entry.2082616046', '11. 對客戶需求與現場狀況的理解程度', SCORE_OPTIONS)}
+                                    {renderCheckboxGroup('entry.951165679', '12. 您認為目前最需要優先改善的項目為：', ["1.回應速度", "2.技術說明", "3.巡檢品質", "4.溝通方式"])}
+                                    {renderRadioGroup('entry.1748333818', '13. 整體而言，您認為目前維運服務是否仍有明顯改善空間？', ["1.幾乎沒有", "2.少量", "3.中等", "4.明顯"])}
+
+                                    <div className="space-y-6 pt-10">
+                                        <div className="p-6 md:p-8 bg-white rounded-[2rem] border-2 border-slate-100 focus-within:border-sky-500 shadow-sm transition-all">
+                                            <label className="block text-slate-800 font-black mb-4 text-lg">14. 若未來可調整部分服務內容，您最希望優化的是？ *</label>
+                                            <textarea required name="entry.1579464985" rows="4" placeholder="請填寫您的建議..." className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white"></textarea>
+                                        </div>
+                                        <div className="p-6 md:p-8 bg-white rounded-[2rem] border-2 border-slate-100 focus-within:border-amber-500 shadow-sm transition-all">
+                                            <label className="block text-slate-800 font-black mb-4 text-lg">15. 其他您願意提供的建議或回饋 *</label>
+                                            <textarea required name="entry.1045920345" rows="4" placeholder="請留下您的寶貴意見..." className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="py-24 text-center px-4">
+                                    <button type="submit" className={`relative overflow-hidden w-full max-w-2xl bg-slate-900 text-white py-7 rounded-[2rem] font-black text-2xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 mx-auto ${status === 'submitting' ? 'opacity-90' : ''}`}>
+                                        {status === 'submitting' ? (
+                                            <>
+                                                <div className="absolute bottom-0 left-0 h-2 bg-sky-400 animate-progress-bar"></div>
+                                                <span className="animate-pulse">正在傳送回覆中...</span>
+                                            </>
+                                        ) : (
+                                            <>確認並提交問卷</>
+                                        )}
+                                    </button>
+                                    <p className="text-slate-400 font-bold mt-8 tracking-widest text-xs uppercase">日益智慧能源股份有限公司 © 2025 ALL RIGHTS RESERVED</p>
+                                </div>
+                            </form>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
